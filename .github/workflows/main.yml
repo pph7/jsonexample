@@ -1,0 +1,38 @@
+name: Build & Distribute
+
+on:
+  push
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: subosito/flutter-action@v1.4.0
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - run:  |
+          cd ios
+          xcodebuild -workspace Runner.xcworkspace -scheme Runner -sdk iphoneos -configuration Release archive -archivePath $PWD/build/Runner.xcarchive
+          xcodebuild -exportArchive -archivePath $PWD/build/Runner.xcarchive -exportOptionsPlist exportOptions.plist -exportPath $PWD/build/Runner.ipa
+      - uses: actions/upload-artifact@v2
+        with:
+          name: iOS IPA
+          path: ios/build/Runner.ipa/Runner.ipa
+#  distribute:
+#    needs: build
+#    if: "contains(github.event.head_commit.message, '[distribute]')"
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: iOS Firebase Distribution
+#        uses: hasretsariyer/firebase-app-distribution-github-action@v1.0
+#        with:
+#          app_id: 1:83660940670:ios:a0c57b39578daa4e0dff2f
+#          app_file: ios/build/Runner.ipa/Runner.ipa
+#          firebase_token: 1//03cN7MUjHq6nyCgYIARAAGAMSNwF-L9Ir277Zyjv0hihAp43VNXQYkz6vj22rf_lTrWXLqRgSIcjZFADa1pVfi-VWkC01qOfrix0
+#          tester_groups: Testers
